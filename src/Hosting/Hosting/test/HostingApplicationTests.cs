@@ -32,7 +32,7 @@ public class HostingApplicationTests
             Console.WriteLine($"{instrument.Name} recorded measurement {measurement}. New value {newValue}");
         }
 
-        var metricsFactory = new TestMetricsFactory();
+        var metricsFactory = new TestMeterFactory();
         var hostingApplication = CreateApplication(metricsFactory: metricsFactory);
         var httpContext = new DefaultHttpContext();
         var meter = Assert.Single(metricsFactory.Meters);
@@ -274,7 +274,7 @@ public class HostingApplicationTests
             activitySource ?? new ActivitySource("Microsoft.AspNetCore"),
             DistributedContextPropagator.CreateDefaultPropagator(),
             httpContextFactory,
-            new HostingMetrics(metricsFactory ?? new TestMetricsFactory()));
+            new HostingMetrics(metricsFactory ?? new TestMeterFactory()));
 
         return hostingApplication;
     }

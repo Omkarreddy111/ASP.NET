@@ -186,7 +186,9 @@ internal sealed class HostingApplicationDiagnostics
     {
         if (context.EventLogEnabled)
         {
-            metrics.RequestStop(statusCode);
+            var elapsed = new TimeSpan((long)(TimestampToTicks * (Stopwatch.GetTimestamp() - context.StartTimestamp)));
+
+            metrics.RequestStop(statusCode, elapsed);
             // Non-inline
             HostingEventSource.Log.RequestStop();
         }

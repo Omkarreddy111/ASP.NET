@@ -12,6 +12,7 @@ internal sealed class HostingMetrics : IDisposable
     private readonly Counter<long> _totalRequestsCounter;
     private readonly UpDownCounter<long> _currentRequestsCounter;
     private readonly Counter<long> _failedRequestsCounter;
+    private readonly Histogram<double> _requestTime;
 
     public HostingMetrics(IMeterFactory metricsFactory)
     {
@@ -28,6 +29,10 @@ internal sealed class HostingMetrics : IDisposable
         _failedRequestsCounter = _meter.CreateCounter<long>(
             "failed-requests",
             description: "Failed Requests");
+
+        _requestTime = _meter.CreateHistogram<double>(
+            "request-time",
+            description: "Request time");
     }
 
     public void RequestStart()
@@ -36,10 +41,11 @@ internal sealed class HostingMetrics : IDisposable
         _currentRequestsCounter.Add(1);
     }
 
-    public void RequestStop(int statusCode)
+    public void RequestStop(int statusCode, TimeSpan duration)
     {
         // TODO: Status code int is boxed
         _currentRequestsCounter.Add(-1, new KeyValuePair<string, object?>("status-code", statusCode));
+        _requestTime.Record(duration.TotalMilliseconds);
     }
 
     public void RequestFailed()

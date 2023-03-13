@@ -20,7 +20,7 @@ public static class MeterServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddMetrics(this IServiceCollection services, Action<MeterFactoryOptions> configure)
+    public static IServiceCollection AddMeters(this IServiceCollection services, Action<MeterFactoryOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
 

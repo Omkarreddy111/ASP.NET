@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Internal;
 using Microsoft.Extensions.Metrics;
 using System.Diagnostics.Metrics;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Hosting.Fakes;
 
 namespace Microsoft.AspNetCore.Hosting;
 
@@ -189,7 +190,7 @@ public class HostingEventSourceTests
 
         var meterFactory = new TestMeterFactory();
         var hostingMetrics = new HostingMetrics(meterFactory);
-        var hostingEventSource = GetHostingEventSource(meterFactory.CreatedMeters.Single());
+        var hostingEventSource = GetHostingEventSource(meterFactory.Meters.Single());
 
         var timeout = !Debugger.IsAttached ? TimeSpan.FromSeconds(30) : Timeout.InfiniteTimeSpan;
         using CancellationTokenSource timeoutTokenSource = new CancellationTokenSource(timeout);
@@ -213,7 +214,7 @@ public class HostingEventSourceTests
         Assert.Equal(1, await currentRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
-        hostingMetrics.RequestStop(StatusCodes.Status200OK);
+        hostingMetrics.RequestStop(StatusCodes.Status200OK, TimeSpan.FromMilliseconds(5));
 
         Assert.Equal(1, await totalRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
@@ -228,7 +229,7 @@ public class HostingEventSourceTests
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
         hostingMetrics.RequestFailed();
-        hostingMetrics.RequestStop(StatusCodes.Status500InternalServerError);
+        hostingMetrics.RequestStop(StatusCodes.Status500InternalServerError, TimeSpan.FromMilliseconds(5));
 
         Assert.Equal(2, await totalRequestValues.FirstOrDefault(v => v == 2));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
@@ -239,22 +240,5 @@ public class HostingEventSourceTests
     private static HostingEventSource GetHostingEventSource(Meter meter = null)
     {
         return new HostingEventSource(Guid.NewGuid().ToString(), meter);
-    }
-
-    private class TestMeterFactory : IMeterFactory
-    {
-        public List<Meter> CreatedMeters { get; } = new List<Meter>();
-
-        public Meter CreateMeter(string name)
-        {
-            return CreateMeter(new MeterOptions { Name = name });
-        }
-
-        public Meter CreateMeter(MeterOptions options)
-        {
-            var meter = new Meter(options.Name, options.Version);
-            CreatedMeters.Add(meter);
-            return meter;
-        }
     }
 }

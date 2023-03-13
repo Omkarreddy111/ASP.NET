@@ -593,7 +593,7 @@ public class HostingApplicationDiagnosticsTests
             activitySource ?? new ActivitySource("Microsoft.AspNetCore"),
             DistributedContextPropagator.CreateDefaultPropagator(),
             httpContextFactory.Object,
-            new HostingMetrics(new TestMetricsFactory()));
+            new HostingMetrics(new TestMeterFactory()));
 
         return hostingApplication;
     }
