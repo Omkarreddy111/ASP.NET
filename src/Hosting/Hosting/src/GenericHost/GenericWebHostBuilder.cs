@@ -80,7 +80,7 @@ internal sealed class GenericWebHostBuilder : WebHostBuilderBase, ISupportsStart
             services.TryAddScoped<IMiddlewareFactory, MiddlewareFactory>();
             services.TryAddSingleton<IApplicationBuilderFactory, ApplicationBuilderFactory>();
 
-            services.AddMetrics();
+            services.AddMeters();
             services.TryAddSingleton<HostingMetrics>();
 
             // IMPORTANT: This needs to run *before* direct calls on the builder (like UseStartup)

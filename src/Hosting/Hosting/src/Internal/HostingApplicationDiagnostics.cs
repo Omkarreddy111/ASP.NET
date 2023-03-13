@@ -173,7 +173,7 @@ internal sealed class HostingApplicationDiagnostics
             // Count 500 as failed requests
             if (httpContext.Response.StatusCode >= 500)
             {
-                HostingEventSource.Log.RequestFailed();
+                _metrics.RequestFailed();
             }
         }
 
@@ -182,10 +182,11 @@ internal sealed class HostingApplicationDiagnostics
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ContextDisposed(HostingApplication.Context context)
+    public static void ContextDisposed(HostingApplication.Context context, HostingMetrics metrics)
     {
         if (context.EventLogEnabled)
         {
+            metrics.RequestStop();
             // Non-inline
             HostingEventSource.Log.RequestStop();
         }
@@ -305,8 +306,9 @@ internal sealed class HostingApplicationDiagnostics
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void RecordRequestStartEventLog(HttpContext httpContext)
+    private void RecordRequestStartEventLog(HttpContext httpContext)
     {
+        _metrics.RequestStart();
         HostingEventSource.Log.RequestStart(httpContext.Request.Method, httpContext.Request.Path);
     }
 

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Metrics;
 
 namespace Microsoft.AspNetCore.Hosting.Fakes;
 
-public class TestMetricsFactory : IMetricsFactory
+public class TestMetricsFactory : IMeterFactory
 {
     private readonly List<Meter> _meters = new List<Meter>();
 

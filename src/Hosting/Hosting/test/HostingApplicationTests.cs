@@ -26,25 +26,27 @@ public class HostingApplicationTests
         var measurements = new Dictionary<string, long>();
         void OnMeasurementRecorded(Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object>> tags, object state)
         {
-            measurements[instrument.Name] = measurement;
-            Console.WriteLine($"{instrument.Name} recorded measurement {measurement}");
+            measurements.TryGetValue(instrument.Name, out var oldValue);
+            var newValue = oldValue + measurement;
+            measurements[instrument.Name] = newValue;
+            Console.WriteLine($"{instrument.Name} recorded measurement {measurement}. New value {newValue}");
         }
+
+        var metricsFactory = new TestMetricsFactory();
+        var hostingApplication = CreateApplication(metricsFactory: metricsFactory);
+        var httpContext = new DefaultHttpContext();
+        var meter = Assert.Single(metricsFactory.Meters);
 
         using var meterListener = new MeterListener();
         meterListener.InstrumentPublished = (instrument, listener) =>
         {
-            if (instrument.Meter.Name == "Microsoft.AspNetCore.Hosting")
+            if (instrument.Meter == meter)
             {
                 listener.EnableMeasurementEvents(instrument);
             }
         };
         meterListener.SetMeasurementEventCallback<long>(OnMeasurementRecorded);
         meterListener.Start();
-
-        var metricsFactory = new TestMetricsFactory();
-        var hostingApplication = CreateApplication(metricsFactory: metricsFactory);
-        var httpContext = new DefaultHttpContext();
-        var meter = Assert.Single(metricsFactory.Meters);
 
         // Act/Assert
         Assert.Equal("Microsoft.AspNetCore.Hosting", meter.Name);
@@ -58,7 +60,7 @@ public class HostingApplicationTests
 
         Assert.Equal(1, measurements["total-requests"]);
         Assert.Equal(0, measurements["current-requests"]);
-        Assert.Equal(0, measurements["failed-requests"]);
+        Assert.False(measurements.ContainsKey("failed-requests"));
 
         // Request 2 (after failure)
         var context2 = hostingApplication.CreateContext(httpContext.Features);
@@ -254,7 +256,7 @@ public class HostingApplicationTests
     }
 
     private static HostingApplication CreateApplication(IHttpContextFactory httpContextFactory = null, bool useHttpContextAccessor = false,
-        ActivitySource activitySource = null, IMetricsFactory metricsFactory = null)
+        ActivitySource activitySource = null, IMeterFactory metricsFactory = null)
     {
         var services = new ServiceCollection();
         services.AddOptions();

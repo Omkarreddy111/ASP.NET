@@ -13,6 +13,7 @@ namespace Microsoft.AspNetCore.Hosting;
 internal sealed class HostingApplication : IHttpApplication<HostingApplication.Context>
 {
     private readonly RequestDelegate _application;
+    private readonly HostingMetrics _metrics;
     private readonly IHttpContextFactory? _httpContextFactory;
     private readonly DefaultHttpContextFactory? _defaultHttpContextFactory;
     private readonly HostingApplicationDiagnostics _diagnostics;
@@ -27,6 +28,7 @@ internal sealed class HostingApplication : IHttpApplication<HostingApplication.C
         HostingMetrics metrics)
     {
         _application = application;
+        _metrics = metrics;
         _diagnostics = new HostingApplicationDiagnostics(logger, diagnosticSource, activitySource, propagator, metrics);
         if (httpContextFactory is DefaultHttpContextFactory factory)
         {
@@ -111,7 +113,7 @@ internal sealed class HostingApplication : IHttpApplication<HostingApplication.C
             _httpContextFactory!.Dispose(httpContext);
         }
 
-        HostingApplicationDiagnostics.ContextDisposed(context);
+        HostingApplicationDiagnostics.ContextDisposed(context, _metrics);
 
         // Reset the context as it may be pooled
         context.Reset();

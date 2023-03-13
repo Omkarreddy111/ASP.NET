@@ -7,7 +7,7 @@ namespace Microsoft.Extensions.Metrics;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 #pragma warning disable RS0016 // Add public types and members to the declared API
-public sealed class MetricsOptions
+public sealed class MeterFactoryOptions
 {
     public string? ContainerId { get; set; }
     public IDictionary<string, string> DefaultTags { get; } = new Dictionary<string, string>();
@@ -19,7 +19,7 @@ public sealed class MeterOptions
     public string? Version { get; set; }
 }
 
-public interface IMetricsFactory
+public interface IMeterFactory
 {
     Meter CreateMeter(string name);
     Meter CreateMeter(MeterOptions options);

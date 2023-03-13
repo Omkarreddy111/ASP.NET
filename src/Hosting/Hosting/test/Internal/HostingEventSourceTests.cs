@@ -5,6 +5,9 @@ using System.Globalization;
 using System.Diagnostics.Tracing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Internal;
+using Microsoft.Extensions.Metrics;
+using System.Diagnostics.Metrics;
+using System.Diagnostics;
 
 namespace Microsoft.AspNetCore.Hosting;
 
@@ -184,9 +187,12 @@ public class HostingEventSourceTests
                 "failed-requests"
             });
 
-        var hostingEventSource = GetHostingEventSource();
+        var meterFactory = new TestMeterFactory();
+        var hostingMetrics = new HostingMetrics(meterFactory);
+        var hostingEventSource = GetHostingEventSource(meterFactory.CreatedMeters.Single());
 
-        using var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var timeout = !Debugger.IsAttached ? TimeSpan.FromSeconds(30) : Timeout.InfiniteTimeSpan;
+        using CancellationTokenSource timeoutTokenSource = new CancellationTokenSource(timeout);
 
         var rpsValues = eventListener.GetCounterValues("requests-per-second", timeoutTokenSource.Token).GetAsyncEnumerator();
         var totalRequestValues = eventListener.GetCounterValues("total-requests", timeoutTokenSource.Token).GetAsyncEnumerator();
@@ -196,33 +202,33 @@ public class HostingEventSourceTests
         eventListener.EnableEvents(hostingEventSource, EventLevel.Informational, EventKeywords.None,
             new Dictionary<string, string>
             {
-                    { "EventCounterIntervalSec", "1" }
+                { "EventCounterIntervalSec", "1" }
             });
 
         // Act & Assert
-        hostingEventSource.RequestStart("GET", "/");
+        hostingMetrics.RequestStart();
 
         Assert.Equal(1, await totalRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(1, await rpsValues.FirstOrDefault(v => v == 1));
         Assert.Equal(1, await currentRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
-        hostingEventSource.RequestStop();
+        hostingMetrics.RequestStop();
 
         Assert.Equal(1, await totalRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
         Assert.Equal(0, await currentRequestValues.FirstOrDefault(v => v == 0));
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
-        hostingEventSource.RequestStart("POST", "/");
+        hostingMetrics.RequestStart();
 
         Assert.Equal(2, await totalRequestValues.FirstOrDefault(v => v == 2));
         Assert.Equal(1, await rpsValues.FirstOrDefault(v => v == 1));
         Assert.Equal(1, await currentRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
-        hostingEventSource.RequestFailed();
-        hostingEventSource.RequestStop();
+        hostingMetrics.RequestFailed();
+        hostingMetrics.RequestStop();
 
         Assert.Equal(2, await totalRequestValues.FirstOrDefault(v => v == 2));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
@@ -230,8 +236,25 @@ public class HostingEventSourceTests
         Assert.Equal(1, await failedRequestValues.FirstOrDefault(v => v == 1));
     }
 
-    private static HostingEventSource GetHostingEventSource()
+    private static HostingEventSource GetHostingEventSource(Meter? meter = null)
     {
-        return new HostingEventSource(Guid.NewGuid().ToString());
+        return new HostingEventSource(Guid.NewGuid().ToString(), meter);
+    }
+
+    private class TestMeterFactory : IMeterFactory
+    {
+        public List<Meter> CreatedMeters { get; } = new List<Meter>();
+
+        public Meter CreateMeter(string name)
+        {
+            return CreateMeter(new MeterOptions { Name = name });
+        }
+
+        public Meter CreateMeter(MeterOptions options)
+        {
+            var meter = new Meter(options.Name, options.Version);
+            CreatedMeters.Add(meter);
+            return meter;
+        }
     }
 }

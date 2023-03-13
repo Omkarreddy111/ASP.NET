@@ -6,31 +6,44 @@ using Microsoft.Extensions.Metrics;
 
 namespace Microsoft.AspNetCore.Hosting;
 
-internal class HostingMetrics : IDisposable
+internal sealed class HostingMetrics : IDisposable
 {
     private readonly Meter _meter;
-    private readonly ObservableCounter<long> _totalRequestsCounter;
-    private readonly ObservableUpDownCounter<long> _currentRequestsCounter;
-    private readonly ObservableCounter<long> _failedRequestsCounter;
+    private readonly Counter<long> _totalRequestsCounter;
+    private readonly UpDownCounter<long> _currentRequestsCounter;
+    private readonly Counter<long> _failedRequestsCounter;
 
-    public HostingMetrics(IMetricsFactory metricsFactory)
+    public HostingMetrics(IMeterFactory metricsFactory)
     {
         _meter = metricsFactory.CreateMeter("Microsoft.AspNetCore.Hosting");
 
-        _totalRequestsCounter = _meter.CreateObservableCounter<long>(
+        _totalRequestsCounter = _meter.CreateCounter<long>(
             "total-requests",
-            () => HostingEventSource.Log.TotalRequests,
             description: "Total Requests");
 
-        _currentRequestsCounter = _meter.CreateObservableUpDownCounter<long>(
+        _currentRequestsCounter = _meter.CreateUpDownCounter<long>(
             "current-requests",
-            () => HostingEventSource.Log.CurrentRequests,
             description: "Current Requests");
 
-        _failedRequestsCounter = _meter.CreateObservableCounter<long>(
+        _failedRequestsCounter = _meter.CreateCounter<long>(
             "failed-requests",
-            () => HostingEventSource.Log.FailedRequests,
             description: "Failed Requests");
+    }
+
+    public void RequestStart()
+    {
+        _totalRequestsCounter.Add(1);
+        _currentRequestsCounter.Add(1);
+    }
+
+    public void RequestStop()
+    {
+        _currentRequestsCounter.Add(-1);
+    }
+
+    public void RequestFailed()
+    {
+        _failedRequestsCounter.Add(1);
     }
 
     public void Dispose()
