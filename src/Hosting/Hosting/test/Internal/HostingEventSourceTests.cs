@@ -236,7 +236,7 @@ public class HostingEventSourceTests
         Assert.Equal(1, await failedRequestValues.FirstOrDefault(v => v == 1));
     }
 
-    private static HostingEventSource GetHostingEventSource(Meter? meter = null)
+    private static HostingEventSource GetHostingEventSource(Meter meter = null)
     {
         return new HostingEventSource(Guid.NewGuid().ToString(), meter);
     }
