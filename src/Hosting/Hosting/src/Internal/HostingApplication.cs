@@ -94,6 +94,9 @@ internal sealed class HostingApplication : IHttpApplication<HostingApplication.C
     public void DisposeContext(Context context, Exception? exception)
     {
         var httpContext = context.HttpContext!;
+        // Capture status code before context is disposed.
+        var statusCode = httpContext.Response.StatusCode;
+
         _diagnostics.RequestEnd(httpContext, exception, context);
 
         if (_defaultHttpContextFactory != null)
@@ -113,7 +116,7 @@ internal sealed class HostingApplication : IHttpApplication<HostingApplication.C
             _httpContextFactory!.Dispose(httpContext);
         }
 
-        HostingApplicationDiagnostics.ContextDisposed(context, _metrics);
+        HostingApplicationDiagnostics.ContextDisposed(context, _metrics, statusCode);
 
         // Reset the context as it may be pooled
         context.Reset();

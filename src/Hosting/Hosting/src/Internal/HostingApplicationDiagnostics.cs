@@ -182,11 +182,11 @@ internal sealed class HostingApplicationDiagnostics
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ContextDisposed(HostingApplication.Context context, HostingMetrics metrics)
+    public static void ContextDisposed(HostingApplication.Context context, HostingMetrics metrics, int statusCode)
     {
         if (context.EventLogEnabled)
         {
-            metrics.RequestStop();
+            metrics.RequestStop(statusCode);
             // Non-inline
             HostingEventSource.Log.RequestStop();
         }

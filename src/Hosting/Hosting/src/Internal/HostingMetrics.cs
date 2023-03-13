@@ -36,9 +36,10 @@ internal sealed class HostingMetrics : IDisposable
         _currentRequestsCounter.Add(1);
     }
 
-    public void RequestStop()
+    public void RequestStop(int statusCode)
     {
-        _currentRequestsCounter.Add(-1);
+        // TODO: Status code int is boxed
+        _currentRequestsCounter.Add(-1, new KeyValuePair<string, object?>("status-code", statusCode));
     }
 
     public void RequestFailed()

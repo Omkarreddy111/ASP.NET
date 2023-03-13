@@ -213,7 +213,7 @@ public class HostingEventSourceTests
         Assert.Equal(1, await currentRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
-        hostingMetrics.RequestStop();
+        hostingMetrics.RequestStop(StatusCodes.Status200OK);
 
         Assert.Equal(1, await totalRequestValues.FirstOrDefault(v => v == 1));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
@@ -228,7 +228,7 @@ public class HostingEventSourceTests
         Assert.Equal(0, await failedRequestValues.FirstOrDefault(v => v == 0));
 
         hostingMetrics.RequestFailed();
-        hostingMetrics.RequestStop();
+        hostingMetrics.RequestStop(StatusCodes.Status500InternalServerError);
 
         Assert.Equal(2, await totalRequestValues.FirstOrDefault(v => v == 2));
         Assert.Equal(0, await rpsValues.FirstOrDefault(v => v == 0));
