@@ -8,21 +8,19 @@ namespace Microsoft.AspNetCore.Hosting.Fakes;
 
 public class TestMeterFactory : IMeterFactory
 {
-    private readonly List<Meter> _meters = new List<Meter>();
-
-    public IReadOnlyList<Meter> Meters => _meters;
+    public List<Meter> Meters { get; } = new List<Meter>();
 
     public Meter CreateMeter(string name)
     {
         var meter = new Meter(name);
-        _meters.Add(meter);
+        Meters.Add(meter);
         return meter;
     }
 
     public Meter CreateMeter(MeterOptions options)
     {
         var meter = new Meter(options.Name, options.Version);
-        _meters.Add(meter);
+        Meters.Add(meter);
         return meter;
     }
 }

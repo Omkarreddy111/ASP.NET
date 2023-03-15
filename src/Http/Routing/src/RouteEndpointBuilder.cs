@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace Microsoft.AspNetCore.Routing;
@@ -53,11 +54,11 @@ public sealed class RouteEndpointBuilder : EndpointBuilder
             RequestDelegate,
             RoutePattern,
             Order,
-            CreateMetadataCollection(Metadata),
+            CreateMetadataCollection(Metadata, RoutePattern),
             DisplayName);
     }
 
-    private static EndpointMetadataCollection CreateMetadataCollection(IList<object> metadata)
+    private static EndpointMetadataCollection CreateMetadataCollection(IList<object> metadata, RoutePattern routePattern)
     {
         if (metadata.Count > 0)
         {
@@ -95,6 +96,18 @@ public sealed class RouteEndpointBuilder : EndpointBuilder
             }
         }
 
+        metadata.Add(new RoutePatternDiagnosticsMetadata(routePattern.DebuggerToString()));
+
         return new EndpointMetadataCollection(metadata);
+    }
+
+    private sealed class RoutePatternDiagnosticsMetadata : IRoutePatternDiagnosticsMetadata
+    {
+        public string RoutePatternText { get; }
+
+        public RoutePatternDiagnosticsMetadata(string routePatternText)
+        {
+            RoutePatternText = routePatternText;
+        }
     }
 }

@@ -15,7 +15,7 @@ public static class MeterServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddSingleton<IMeterFactory, DefaultMetricsFactory>();
+        services.TryAddSingleton<IMeterFactory, DefaultMeterFactory>();
 
         return services;
     }

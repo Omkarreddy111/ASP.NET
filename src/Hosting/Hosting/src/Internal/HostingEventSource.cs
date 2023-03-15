@@ -12,7 +12,7 @@ internal sealed class HostingEventSource : EventSource
     public static readonly HostingEventSource Log = new HostingEventSource();
 
     // Used for testing
-    private readonly Meter? _meter;
+    private readonly Meter[]? _meters;
 
     private MeterListener? _listener;
     private IncrementingPollingCounter? _requestsPerSecondCounter;
@@ -30,10 +30,10 @@ internal sealed class HostingEventSource : EventSource
     }
 
     // Used for testing
-    internal HostingEventSource(string eventSourceName, Meter? meter)
+    internal HostingEventSource(string eventSourceName, Meter[]? meters)
         : base(eventSourceName, EventSourceSettings.EtwManifestEventFormat)
     {
-        _meter = meter;
+        _meters = meters;
     }
 
     // NOTE
@@ -119,11 +119,11 @@ internal sealed class HostingEventSource : EventSource
     [NonEvent]
     private void InstrumentPublished(Instrument instrument, MeterListener meterListener)
     {
-        if (_meter != null && instrument.Meter != _meter)
+        if (_meters != null && Array.IndexOf(_meters, instrument.Meter) == -1)
         {
             return;
         }
-        if (instrument.Meter.Name != "Microsoft.AspNetCore.Hosting")
+        if (instrument.Meter.Name != HostingMetrics.MeterName)
         {
             return;
         }

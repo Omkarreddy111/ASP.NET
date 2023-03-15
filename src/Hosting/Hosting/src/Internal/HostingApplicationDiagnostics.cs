@@ -8,13 +8,14 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Hosting;
 
 internal sealed class HostingApplicationDiagnostics
 {
-    private static readonly double TimestampToTicks = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
+    internal static readonly double TimestampToTicks = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
 
     // internal so it can be used in tests
     internal const string ActivityName = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
@@ -53,6 +54,9 @@ internal sealed class HostingApplicationDiagnostics
         if (HostingEventSource.Log.IsEnabled() || _metrics.IsEnabled())
         {
             context.EventLogEnabled = true;
+
+            startTimestamp = Stopwatch.GetTimestamp();
+
             // To keep the hot path short we defer logging in this function to non-inlines
             RecordRequestStartEventLog(httpContext);
         }
@@ -83,7 +87,11 @@ internal sealed class HostingApplicationDiagnostics
         {
             if (_diagnosticListener.IsEnabled(DeprecatedDiagnosticsBeginRequestKey))
             {
-                startTimestamp = Stopwatch.GetTimestamp();
+                if (startTimestamp == 0)
+                {
+                    startTimestamp = Stopwatch.GetTimestamp();
+                }
+
                 RecordBeginRequestDiagnostics(httpContext, startTimestamp);
             }
         }
@@ -124,6 +132,21 @@ internal sealed class HostingApplicationDiagnostics
             currentTimestamp = Stopwatch.GetTimestamp();
             // Non-inline
             LogRequestFinished(context, startTimestamp, currentTimestamp);
+
+            if (context.EventLogEnabled)
+            {
+                var routePattern = httpContext.GetEndpoint()?.Metadata.GetMetadata<IRoutePatternDiagnosticsMetadata>()?.RoutePatternText;
+
+                _metrics.RequestEnd(
+                    httpContext.Request.Protocol,
+                    httpContext.Request.Scheme,
+                    httpContext.Request.Method,
+                    httpContext.Request.Host,
+                    routePattern,
+                    httpContext.Response.StatusCode,
+                    startTimestamp,
+                    currentTimestamp);
+            }
         }
 
         if (_diagnosticListener.IsEnabled())
@@ -173,7 +196,7 @@ internal sealed class HostingApplicationDiagnostics
             // Count 500 as failed requests
             if (httpContext.Response.StatusCode >= 500)
             {
-                _metrics.RequestFailed();
+                _metrics.RequestFailed(httpContext.Response.StatusCode);
             }
         }
 
@@ -182,14 +205,11 @@ internal sealed class HostingApplicationDiagnostics
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ContextDisposed(HostingApplication.Context context, HostingMetrics metrics, int statusCode)
+    public static void ContextDisposed(HostingApplication.Context context, HostingMetrics metrics)
     {
         if (context.EventLogEnabled)
         {
-            var elapsed = new TimeSpan((long)(TimestampToTicks * (Stopwatch.GetTimestamp() - context.StartTimestamp)));
-
-            metrics.RequestStop(statusCode, elapsed);
-            // Non-inline
+            metrics.RequestStop();
             HostingEventSource.Log.RequestStop();
         }
     }

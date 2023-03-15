@@ -49,7 +49,7 @@ public class HostingApplicationTests
         meterListener.Start();
 
         // Act/Assert
-        Assert.Equal("Microsoft.AspNetCore.Hosting", meter.Name);
+        Assert.Equal(HostingMetrics.MeterName, meter.Name);
         Assert.Null(meter.Version);
 
         // Request 1 (after success)
